@@ -1,0 +1,204 @@
+% ============================================================
+%  实验报告模板 — 王本熙 (25020007117)
+%  编译方式: xelatex report.tex (运行两遍以解析交叉引用)
+% ============================================================
+\documentclass[a4paper,11pt]{ctexart}
+
+% ---------- 页面布局 ----------
+\usepackage[
+  top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm,
+  headheight=15pt, headsep=0.5cm, footskip=0.8cm
+]{geometry}
+
+% ---------- 数学与表格 ----------
+\usepackage{amsmath, amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{multirow}
+
+% ---------- 图形与链接 ----------
+\usepackage{graphicx}
+\usepackage[
+  colorlinks=true, linkcolor=blue!70!black,
+  citecolor=blue!70!black, urlcolor=teal!80!black
+]{hyperref}
+\usepackage{xcolor}
+
+% ---------- 代码块 ----------
+\usepackage{listings}
+\definecolor{codebg}{RGB}{248,248,248}
+\definecolor{codekw}{RGB}{0,0,180}
+\definecolor{codecmt}{RGB}{0,128,0}
+\definecolor{codestr}{RGB}{180,0,0}
+\lstset{
+  backgroundcolor=\color{codebg},
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{codekw}\bfseries,
+  commentstyle=\color{codecmt},
+  stringstyle=\color{codestr},
+  numbers=left, numberstyle=\tiny\color{gray},
+  frame=single, rulecolor=\color{gray!40},
+  breaklines=true, showstringspaces=false,
+  tabsize=2, columns=flexible,
+  language=Python
+}
+
+% ---------- 页眉页脚 ----------
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small 王本熙 \quad 25020007117}
+\fancyhead[R]{\small 实验报告}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ---------- 章节标题样式 ----------
+\usepackage{titlesec}
+\definecolor{secblue}{RGB}{30,80,160}
+\titleformat{\section}
+  {\Large\bfseries\color{secblue}}{第\thesection\,章}{0.6em}{}
+\titleformat{\subsection}
+  {\large\bfseries\color{secblue!80!black}}{\thesubsection}{0.5em}{}
+\titleformat{\subsubsection}
+  {\normalsize\bfseries\color{secblue!60!black}}{\thesubsubsection}{0.5em}{}
+
+% ---------- 超链接边框样式微调 ----------
+\hypersetup{
+  pdftitle={实验报告},
+  pdfauthor={王本熙}
+}
+
+% ============================================================
+\begin{document}
+
+% ---------- 封面 ----------
+\begin{titlepage}
+  \centering
+  \vspace*{2cm}
+  {\Huge\bfseries\color{secblue} 实验报告\par}
+  \vspace{1cm}
+  {\Large Tool Report\par}
+  \vspace{3cm}
+  \begin{tabular}{rl}
+    \Large 姓\quad 名\,:\, & \Large 王本熙 \\[0.8em]
+    \Large 学\quad 号\,:\, & \Large 25020007117 \\[0.8em]
+    \Large 日\quad 期\,:\, & \Large \today \\[0.8em]
+    \Large 平\quad 台\,:\, & \Large GitHub / Gitee \\
+  \end{tabular}
+  \vfill
+  \rule{10cm}{0.4pt}
+  \vspace*{1cm}
+\end{titlepage}
+
+% ---------- 目录 ----------
+\tableofcontents
+\newpage
+
+% ============================================================
+\section{实验目的}
+
+本实验旨在掌握以下内容：
+\begin{itemize}
+  \item 使用 \LaTeX{} 编写结构化实验报告，包括公式、表格、图片与代码。
+  \item 通过 \texttt{xelatex} 编译并生成 PDF，确保交叉引用不出现 \texttt{??}。
+  \item 将代码与报告分批提交至 GitHub/Gitee，保留 commit 记录。
+\end{itemize}
+
+% ============================================================
+\section{实验环境}
+
+\begin{table}[htbp]
+  \centering
+  \caption{实验环境}\label{tab:env}
+  \begin{tabular}{ll}
+    \toprule
+    项目 & 配置 \\
+    \midrule
+    操作系统 & Windows + WSL (Ubuntu) \\
+    编辑器 & VS Code / Trae IDE \\
+    编译器 & XeLaTeX \\
+    版本管理 & Git \\
+    远程仓库 & GitHub / Gitee \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% ============================================================
+\section{实验结果}
+
+% ----- 公式及引用 -----
+本节展示带编号的公式与交叉引用。由式~\eqref{eq:pythagorean} 可得
+$a^2 + b^2 = c^2$。
+
+\begin{equation}
+  a^2 + b^2 = c^2 \label{eq:pythagorean}
+\end{equation}
+
+% ----- 表格及引用 -----
+表~\ref{tab:example} 展示了示例数据。
+
+\begin{table}[htbp]
+  \centering
+  \caption{示例数据表}\label{tab:example}
+  \begin{tabular}{cc}
+    \toprule
+    A & B \\
+    \midrule
+    1 & 2 \\
+    3 & 4 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% ============================================================
+\section{代码与仓库}
+
+项目已托管至 GitHub（请替换为你的实际地址）：
+\url{https://github.com/USERNAME/damai-q04}
+
+\subsection{Git 提交记录}
+
+% 将截图放入本目录，取消下面两行注释
+% \begin{figure}[htbp]
+%   \centering
+%   \includegraphics[width=0.9\textwidth]{commit-log.png}
+%   \caption{Git commit 记录}
+% \end{figure}
+
+\subsection{仓库页面}
+
+% \begin{figure}[htbp]
+%   \centering
+%   \includegraphics[width=0.9\textwidth]{repo-url.png}
+%   \caption{GitHub 仓库页面}
+% \end{figure}
+
+\subsection{提交方式说明}
+
+在 WSL (Ubuntu) 终端中执行分批提交，避免单次全量提交：
+
+\begin{lstlisting}[language=bash]
+# init repo
+cd /mnt/d/damai_qiangpiao/q04
+git init
+git branch -M main
+git remote add origin git@github.com:USERNAME/damai-q04.git
+
+# commit in batches (no single bulk commit)
+git add .gitignore  && git commit -m "chore: add gitignore"
+git add report.tex  && git commit -m "docs: add report template"
+git add report.pdf  && git commit -m "docs: add compiled pdf"
+git push -u origin main
+
+# show commit history
+git log --oneline --graph --decorate
+\end{lstlisting}
+
+% ============================================================
+\section{结论}
+
+通过本实验，完成了基于 \LaTeX{} 的个性化实验报告模板设计，
+公式与表格的交叉引用正常显示；同时通过 Git 分批提交
+至 GitHub，保留了完整的 commit 记录。
+
+\end{document}
