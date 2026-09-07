@@ -744,11 +744,58 @@ Go: \texttt{gopls}）；打开项目中 import 的库符号，按 \texttt{gd} �
 
 \subsection{Git 提交记录}
 
-% 待补充：commit log 文字版或截图（commit-log.png）
+\texttt{git log} 输出如下（本次作业以单一提交推送至 \texttt{origin/main}）：
+
+\begin{lstlisting}[language=bash, numbers=none]
+commit 3dcc3ec3979a9b696eca52b11dbc15888effc7bea
+    (HEAD -> main, origin/main, origin/HEAD)
+Author: liangbaikai-666 <liangbaikai-666@stu.ouc.edu.cn>
+Date:   Mon Sep 7 14:01:30 2026 +0800
+
+    第二次作业
+\end{lstlisting}
+
+提交 \texttt{3dcc3ec} 包含 q05--q08 四道课上实验题的代码与截图、
+课后练习解答（Markdown 源文件）以及本实验报告的
+\LaTeX{} 源码与编译产物。
 
 % ============================================================
 \section{结论}
 
-% 待补充：q06—q08 总结
+通过本次实验，完成了四道课上实验题与一组课后练习，主要收获如下：
+
+\begin{itemize}
+  \item \textbf{任务与信号控制（q05）}：完整走通了前台启动、重定向、
+        \texttt{Ctrl-Z} 挂起、\texttt{bg} 转后台、\texttt{jobs} 确认状态、
+        \texttt{jobs -p} 取 PID、\texttt{SIGTERM} 优雅退出的任务控制流程；
+        脚本通过 \texttt{trap} 在退出前写入 \texttt{CLEAN\_EXIT}，
+        全程未使用 \texttt{kill -9}；
+  \item \textbf{语义重构与开发反馈（q06）}：以 \texttt{grep} 定位全部 6 处
+        \texttt{total\_price} 引用并用 \texttt{sed} 完成与语言服务器
+        ``重命名符号''等效的语义重命名；ruff 发现并自动修复
+        未使用导入（F401）与导入排序问题，pytest 回归通过，
+        形成``检查—修复—回归''的本地开发反馈闭环；
+  \item \textbf{调试器定位缺陷（q07）}：在 \texttt{merge} 中设 pdb 断点，
+        单步观察 \texttt{i}、\texttt{j}、\texttt{left[i]}、\texttt{right[j]}，
+        定位``右序列索引误用''缺陷并以单点修改完成最小修复；
+        新增两个 pytest 测试（给定输入、重复元素）全部通过；
+  \item \textbf{先测量再优化（q08）}：遵循 Profiling 流程——
+        \texttt{time} 两次计时取中位数，\texttt{cProfile -s cumulative}
+        定位热点为列表线性成员测试；将 \texttt{list} 换成 \texttt{set} 后
+        总复杂度由 $O(n \cdot k)$ 降至 $O(n)$，count 保持 \texttt{1000} 不变，
+        加速比约 $5.6$ 倍；
+  \item \textbf{课后练习}：整理了命令行技巧（\texttt{-{}-} 终止符、进程替换）、
+        SSH 远程开发（密钥、config、端口转发、服务加固、Mosh）、
+        Vim mode 配置以及 rr / ASan / strace / perf / hyperfine
+        等调试与性能工具的解答。
+\end{itemize}
+
+总体而言，本实验将``进程与任务控制、语义重构、调试器使用、性能剖析''
+四类开发工具串联成完整的工程实践链路：
+先以规范的方式操作任务与信号，再借助静态检查与测试保障重构质量，
+用调试器精确定位逻辑缺陷，最后以数据驱动的方式完成性能优化。
+全部代码、截图与报告已提交至 GitHub
+（commit \texttt{3dcc3ec}，\texttt{origin/main}），
+便于回溯与复查。
 
 \end{document}
