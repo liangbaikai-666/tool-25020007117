@@ -562,21 +562,28 @@ python train.py
 
 \subsection{Git 提交记录}
 
-\texttt{git log --oneline} 输出如下（本次作业以五个提交推送至 \texttt{origin/main}）：
+\texttt{git log --all --graph --decorate --oneline} 输出如下
+（本次作业以八个提交推送至 \texttt{origin/main}）：
 
 \begin{lstlisting}[language=bash, numbers=none]
-1d4d1d3 第三次作业: q12 PyTorch线性回归训练
-c804adb 第三次作业: q11 协作材料改写 - Issue/提交信息/评审意见
-4a05b9d 第三次作业: q10 清理嵌套目录
-6a84240 第三次作业: q10 AI驱动修复循环 - 空白姓名SystemExit(2)
-d6a240d 第三次作业: q09 包结构与源码
+* 4d10f5e (HEAD -> main) 第三次作业: report3.pdf 编译产物
+* dab5537 第三次作业: q09-q12 实验截图
+* bd3537f 第三次作业: report3.tex 实验报告
+* 1d4d1d3 第三次作业: q12 PyTorch线性回归训练
+* c804adb 第三次作业: q11 协作材料改写 - Issue/提交信息/评审意见
+* 4a05b9d 第三次作业: q10 清理嵌套目录
+* 6a84240 第三次作业: q10 AI驱动修复循环 - 空白姓名SystemExit(2)
+* d6a240d 第三次作业: q09 包结构与源码
 \end{lstlisting}
 
 提交 \texttt{d6a240d} 包含 q09 的包结构源码；
 \texttt{6a84240}+\texttt{4a05b9d} 包含 q10 的测试、修复后 \texttt{cli.py} 和 \texttt{ai\_log.md}
 （第二个提交清理了复制 q09 时误带入的嵌套目录）；
 \texttt{c804adb} 包含 q11 的 \texttt{communication.md}；
-\texttt{1d4d1d3} 包含 q12 的 \texttt{train.py}。
+\texttt{1d4d1d3} 包含 q12 的 \texttt{train.py}；
+\texttt{bd3537f} 包含实验报告 \texttt{report3.tex}；
+\texttt{dab5537} 包含 q09--q12 的实验截图；
+\texttt{4d10f5e} 包含 \LaTeX{} 编译产物 \texttt{report3.pdf}。
 
 % ============================================================
 \section{结论}
