@@ -555,6 +555,173 @@ python train.py
 \end{itemize}
 
 % ============================================================
+\section{第 3 周课后练习}
+
+课上实验之外，本周还有 12 道课后练习，覆盖虚拟环境、Docker、AI 编程体验、Issue 评估等主题。以下用口语化方式逐条梳理。
+
+\subsection{虚拟环境激活前后发生了什么}
+
+激活 venv 之后，最明显的变化就是 \texttt{\$PATH} 前面插入了 \texttt{venv/bin}，而且优先级最高。
+所以这时候敲 \texttt{which python}，结果从系统的 \texttt{/usr/bin/python3} 变成了 \texttt{venv/bin/python}。
+另外多了一个环境变量 \texttt{\$VIRTUAL\_ENV=/home/.../venv}，shell 通过它知道自己在哪个虚拟环境里。
+
+为什么 shell 更喜欢 venv？其实就是 PATH 被重写了，所有 python/pip 调用都被锁定在隔离环境里，不会污染系统 Python。
+
+那 \texttt{deactivate} 在做什么？它本质是一个 shell 函数（不是外部命令），把 \texttt{\$PATH} 和
+\texttt{\$VIRTUAL\_ENV} 恢复到激活前的值，然后把自己 unset 掉。可以用 \texttt{type deactivate} 看它的定义。
+
+\subsection{创建带锁文件的 Python 包并安装}
+
+先装 \texttt{pip-tools}，然后用 \texttt{pip-compile} 从 \texttt{pyproject.toml} 生成锁文件：
+
+\begin{lstlisting}[language=bash]
+pip install pip-tools
+pip-compile pyproject.toml --output-file requirements.txt
+
+python3 -m venv venv
+source venv/bin/activate
+pip install -e .
+\end{lstlisting}
+
+目录结构和 \texttt{pyproject.toml} 跟 q09 类似，只是多了 \texttt{pip-tools} 这一步来生成精确的依赖锁文件，
+保证团队里每个人装的版本完全一致。
+
+\subsection{Docker + docker compose 搭建课程网站}
+
+先装 docker 和 docker compose 插件：
+
+\begin{lstlisting}[language=bash]
+sudo apt install -y docker.io docker-compose-plugin
+\end{lstlisting}
+
+然后写 \texttt{docker-compose.yml}，用 nginx:alpine 镜像，把本地 \texttt{./html} 目录挂到容器里的
+\texttt{/usr/share/nginx/html}，端口映射 8080:80。\texttt{mkdir html \&\& echo "Course Site" > html/index.html}
+准备好内容后，\texttt{docker compose up -d} 启动，浏览器访问 \texttt{http://localhost:8080} 就能看到网站了。
+
+\subsection{Python 应用 + Redis 的 Dockerfile 与 docker-compose.yml}
+
+这个练习是多服务编排：一个 Python 应用连一个 Redis。
+
+\texttt{app.py} 里用 \texttt{import redis}，连 \texttt{redis.Redis(host="redis", port=6379)}，
+然后 \texttt{r.incr("hits")} 做计数器。注意 host 写的是 \texttt{"redis"} 而不是 \texttt{localhost}，
+因为在 docker compose 网络里，服务名就是 DNS 名。
+
+Dockerfile 很简单：\texttt{FROM python:3.12-slim}，\texttt{WORKDIR /app}，\texttt{RUN pip install redis}，
+\texttt{COPY app.py .}，\texttt{CMD ["python", "app.py"]}。
+
+\texttt{docker-compose.yml} 里 \texttt{app} 服务 \texttt{build: .}，\texttt{depends\_on: redis}；
+\texttt{redis} 服务直接用 \texttt{image: redis:alpine}。\texttt{docker compose up} 跑起来就行。
+
+\subsection{发布 Python 包到 TestPyPI 并推送 Docker 镜像到 ghcr.io}
+
+先发包。用 \texttt{pip install build twine}，然后 \texttt{python -m build} 生成 dist 目录，
+\texttt{twine upload -r testpypi dist/*} 传到 TestPyPI。注意 \texttt{-r testpypi} 指定仓库，
+默认是 PyPI。
+
+再推镜像。Dockerfile 里 \texttt{RUN pip install --index-url https://test.pypi.org/simple/mypkg==0.1.0}
+从 TestPyPI 装刚发的包。然后 \texttt{docker build -t ghcr.io/用户名/mypkg:0.1.0 .} 打标签，
+\texttt{docker push ghcr.io/用户名/mypkg:0.1.0} 推到 GitHub Container Registry。
+
+\subsection{GitHub Pages 搭建网站}
+
+用 \texttt{gh} CLI 最方便。\texttt{mkdir pages \&\& cd pages}，写个 \texttt{index.html}，
+\texttt{git init \&\& git add . \&\& git commit -m "init"}，然后 \texttt{gh repo create my-site --public --source .}
+直接在 GitHub 上创建仓库并推送。\texttt{git branch -M main \&\& git push -u origin main}。
+最后去 GitHub Settings → Pages，Branch 选 main / /root，保存。
+访问 \texttt{https://用户名.github.io/my-site} 就能看到了。
+
+\subsection{同一任务四种方式对比：LeetCode Two Sum}
+
+同样一道两数之和，四种方式体验完全不一样：
+
+手动编码——打开编辑器自己写 for 循环加 hashmap，大概 3 到 5 分钟。好处是完全掌控，坏处是容易在边界条件上卡住。
+
+AI 自动补全（Copilot 之类的）——写个函数签名 \texttt{def two\_sum(nums, target):}，补全建议直接弹出来。
+大概 30 秒搞定。但补全结果不一定完全正确，得审查。
+
+内联聊天（Cursor 内联 Chat）——选中代码区域，输入"用哈希表优化这个函数"，大概 1 分钟。上下文感知好，可以对话式迭代，
+但需要在编辑器和聊天窗口之间切换注意力。
+
+智能体（aider / Claude Code）——输入"在 solution.py 中实现 two\_sum，包含类型注解和 doctest"，
+智能体自主创建/编辑文件、运行测试、修复错误。大概 2 分钟（含多轮自动修复）。但调试智能体的行为本身也需要时间成本。
+
+\subsection{用 AI 智能体浏览陌生代码库}
+
+目标是理解 opencode 项目里安全相关功能的工作原理。过程很简单：先克隆仓库，然后让智能体分析 \texttt{src/}
+目录下和安全相关的模块，直接问"opencode 如何处理 API Key 的存储和传输？"。
+智能体会定位到配置文件和 HTTP 客户端代码，解释认证流程。
+
+体验是智能体能快速定位关键文件，比手动 grep 高效多了。但解释有时过于笼统，得追问细节。
+在调试场景下，让智能体直接改代码并运行测试，反馈循环很快。
+
+\subsection{从零开始氛围编程一个小应用}
+
+任务是创建一个"每日名言"CLI 工具，全程不手动写一行代码。
+
+向智能体描述需求："用 Python 写一个 CLI 工具，每天从 quotes.json 随机输出一句名言，支持 --add 添加新名言"。
+智能体自动生成项目结构、代码、测试。然后 \texttt{python -m venv venv \&\& source venv/bin/activate \&\& pip install -e .}
+装完就能跑了。
+
+最终得到一个可运行的 CLI 工具，包含 quotes.json 数据文件和完整的 pyproject.toml。
+体验像"指挥"而不是"编程"，但需要对生成结果做最终审查。
+
+\subsection{AGENTS.md / Skill / 子智能体}
+
+选的是 Claude Code，它同时支持三种机制。
+
+AGENTS.md 放在仓库根目录，相当于给智能体的项目说明书——告诉它项目结构、代码风格、测试命令、常见陷阱等。
+每次智能体进来都会读这个文件，不用每次重新解释。
+
+Skill 是可复用的指令片段，可以理解为"预设的提示模板"。比如"写 Python 测试"、"代码审查"，
+做成 Skill 之后每次调用就行，不用重新组织语言。
+
+子智能体是让一个智能体派生多个专门的小智能体并行工作。比如一个负责搜索代码、一个负责写测试、
+一个负责跑构建，主智能体协调它们的结果。适合大任务拆分。
+
+\subsection{Issue 评估：jupyterlab \#15842}
+
+选了 jupyterlab 的 \#15842——"切换标签页时笔记本滚动到顶部"。评估下来，这个 Issue 不太尊重维护者时间。
+
+标题是清晰的，一句话说清了现象。但版本信息完全缺失（没写 JupyterLab 版本、浏览器、操作系统），
+复现步骤也不完整（只说"切换标签页时"，没说具体操作流程），期望行为没说（保持滚动位置？还是别的？），
+也没有截图或录屏，更没尝试最小化。
+
+预期维护者需要至少 2 到 3 轮追问才能定位根源。
+
+改进后的写法：标题加上版本号和环境（"Scrolling position lost when switching between notebook tabs (JupyterLab 4.1.0, Chrome 120, macOS 14)"），
+复现步骤分 4 步写清楚（打开两个 notebook $\to$ 滚动到中间 $\to$ 切换再切回 $\to$ 观察滚动位置重置），
+期望行为明确写"切回时保持之前的滚动位置"，环境信息补全。
+
+\subsection{最小可复现示例练习}
+
+Bug 场景：用 \texttt{pip install -e .} 安装可编辑包时，如果 \texttt{pyproject.toml} 里缺少
+\texttt{[tool.setuptools]} 配置，安装成功但 \texttt{import} 时报 \texttt{ModuleNotFoundError}。
+
+原始场景包含大量无关信息：cli.py、test\_cli.py、README.md、LICENSE、.gitignore，还有 \texttt{[project.scripts]}
+入口点。剥离后的最小示例只有三个东西：\texttt{pyproject.toml}、\texttt{src/mypkg/\_\_init\_\_.py}、
+\texttt{x = 1} 一行代码。
+
+去掉了什么？cli.py 和 test\_cli.py 是因为 bug 跟 CLI 和测试无关，只跟包发现有关。
+README.md、LICENSE、.gitignore 跟构建系统没关系。
+\texttt{[project.scripts]} 入口点也不需要，因为 bug 在 import 阶段就出现了。
+包名从 greetlab 改成 mypkg 只是缩短，不影响问题本质。
+虚拟环境路径细节也无关，任何 Python 3.10+ 的 venv 都能复现。
+
+根因是什么？setuptools 在 editable 模式下不知道去哪里找包，因为缺了两行配置：
+
+\begin{lstlisting}
+[tool.setuptools]
+packages = ["mypkg"]
+
+[tool.setuptools.package-dir]
+mypkg = "src/mypkg"
+\end{lstlisting}
+
+加上这两行，\texttt{pip install -e .} 就能正常 \texttt{import mypkg} 了。
+
+最小可复现示例的价值就在于——它让维护者能在 30 秒内理解问题，而不是花半小时在一堆无关文件里翻找。
+
+% ============================================================
 \section{代码与仓库}
 
 项目已托管至 GitHub：
