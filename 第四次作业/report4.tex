@@ -580,6 +580,275 @@ git add -A && git commit -m "q16 修复并交付"
 \end{itemize}
 
 % ============================================================
+\section{第 4 周课后练习}
+
+课上实验之外，本周还有 11 道课后练习，围绕 Make、依赖版本、Git 钩子、CI、正则表达式与静态分析等主题展开。下面用文字加代码的方式逐条记录。
+
+\subsection{Makefile 的 clean 目标}
+
+\texttt{clean} 是最常见的伪目标，作用就是"撤销构建"，把生成的产物删掉：
+
+\begin{lstlisting}[numbers=none]
+.PHONY: clean
+
+clean:
+	rm -f paper.pdf
+\end{lstlisting}
+
+这里 \texttt{.PHONY} 声明 \texttt{clean} 不是一个真正的文件。如果不加这行，而目录里恰好存在一个叫
+\texttt{clean} 的文件，make 会认为目标已经是最新的，从而什么都不做。加上之后每次 \texttt{make clean}
+都会无条件执行删除命令。
+
+\subsection{Rust 依赖版本语法的几种场景}
+
+Cargo.toml 里写依赖版本时有好几种写法，宽松程度不一样。
+
+尖号 \texttt{\^{}1.2.3} 允许更新到 1.x.x 里的最新兼容版本，也就是说主版本号 1 不变，次版本和补丁版本都可以升。
+大多数生产项目用这种，既能自动拿到修复，又不会被破坏性更新坑到。
+
+波浪号 \texttt{\~{}1.2.3} 更保守，只允许更新到 1.2.x 的补丁版本，次版本号都不动。
+适合对稳定性要求极高、不想引入任何新功能的场景。
+
+通配符 \texttt{1.*} 匹配任意 1.x.x，放得最宽，适合快速原型开发，不关心具体小版本。
+
+比较符可以显式指定版本区间，比如 \texttt{>=1.2.3, <2.0.0}，适合依赖某个 API、同时确定不会升级主版本的情况。
+还可以同时写多个条件，比如 \texttt{>=1.2, <=1.4}，满足多个约束，
+适合需要兼容特定旧环境、但又不想用太老版本的场景。
+
+\subsection{Git pre-commit 钩子：提交前自动构建}
+
+在 \texttt{.git/hooks/pre-commit} 里写一个脚本，让每次提交前先跑一遍构建：
+
+\begin{lstlisting}[language=bash,numbers=none]
+#!/bin/sh
+make paper.pdf
+if [ $? -ne 0 ]; then
+    echo "构建失败，提交被拒绝"
+    exit 1
+fi
+\end{lstlisting}
+
+写完记得加可执行权限：
+
+\begin{lstlisting}[language=bash,numbers=none]
+chmod +x .git/hooks/pre-commit
+\end{lstlisting}
+
+这样以后每次 \texttt{git commit} 之前都会自动构建，构建失败就直接拒绝提交，
+从源头上避免把编译不过的代码提交上去。
+
+\subsection{GitHub Pages、Actions 与自定义 Action}
+
+GitHub Pages 最简单：仓库 Settings 里找到 Pages，选择 main 分支的 /root 或 /docs 目录，
+保存后就会自动发布，访问 \texttt{https://用户名.github.io/仓库名} 即可。
+
+然后用 Action 做自动检查。比如对所有 shell 脚本跑 shellcheck，
+在 \texttt{.github/workflows/shellcheck.yml} 里写：
+
+\begin{lstlisting}[numbers=none]
+name: shellcheck
+on: push
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: shellcheck $(find . -name "*.sh")
+\end{lstlisting}
+
+还可以把重复的检查逻辑封装成自定义 Action。比如用 proselint 检查 Markdown 文案，
+在 \texttt{.github/actions/prose/action.yml} 里写一个 composite action：
+
+\begin{lstlisting}[numbers=none]
+name: prose-lint
+runs:
+  using: composite
+  steps:
+    - run: pip install proselint && proselint **/*.md
+      shell: bash
+\end{lstlisting}
+
+在 workflow 中直接引用本地路径即可调用：
+
+\begin{lstlisting}[numbers=none]
+- uses: ./.github/actions/prose
+\end{lstlisting}
+
+提交一个包含语法问题的 \texttt{.md} 文件（比如连续空格、被动语态），Action 就会报错并阻断合并。
+
+\subsection{格式化器、linter 与 pre-commit 钩子的配合}
+
+以 Python 项目为例，先安装 black 和 ruff：
+
+\begin{lstlisting}[language=bash,numbers=none]
+pip install black ruff
+\end{lstlisting}
+
+然后在 \texttt{.git/hooks/pre-commit} 里让提交前先自动格式化、再跑 linter：
+
+\begin{lstlisting}[language=bash,numbers=none]
+#!/bin/sh
+black .
+ruff check . --fix
+ruff check .
+if [ $? -ne 0 ]; then
+    echo "linter 错误未完全修复，提交被拒绝"
+    exit 1
+fi
+\end{lstlisting}
+
+\texttt{chmod +x .git/hooks/pre-commit} 加上执行权限后钩子就生效了。
+
+让 AI agent 修 linter 错误时，先让它跑一遍 \texttt{ruff check .}，根据输出逐条修改，
+再重新运行，直到返回码为 0。修完之后人工复查一遍 diff，确认自动修复只动了风格、没有改变逻辑。
+
+\subsection{测试覆盖率与 AI agent}
+
+Python 里用 pytest 配合 pytest-cov 看覆盖率。先写个最简单的例子：
+
+\begin{lstlisting}[language=Python]
+def add(a, b):
+    return a + b
+
+def test_add():
+    assert add(1, 2) == 3
+\end{lstlisting}
+
+运行测试并生成 HTML 覆盖率报告：
+
+\begin{lstlisting}[language=bash,numbers=none]
+pytest --cov=. --cov-report=html
+\end{lstlisting}
+
+打开 \texttt{htmlcov/index.html}，可以逐行看到哪些行被测试执行过、哪些没覆盖到，非常直观。
+
+初始覆盖率一般都很低。手动补一批边界测试之后，可以让 AI agent 接着跑：
+
+\begin{lstlisting}[language=bash,numbers=none]
+pytest --cov=. --cov-report=term-missing
+\end{lstlisting}
+
+\texttt{term-missing} 会直接在终端列出未覆盖的行号，让 agent 照着这些行号补测试。
+AI 生成的测试通常能把普通分支覆盖掉，但容易忽略异常路径，有时还会写出没有实际意义的断言，
+所以必须人工检查一遍。
+
+\subsection{持续集成：GitHub Actions}
+
+在 \texttt{.github/workflows/ci.yml} 里配一条最基础的流水线，每次 push 都跑格式检查、linter 和测试：
+
+\begin{lstlisting}[numbers=none]
+name: ci
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install black ruff pytest
+      - run: black --check .
+      - run: ruff check .
+      - run: pytest
+\end{lstlisting}
+
+验证流水线是否真的有效，可以故意在代码里写 \texttt{import os; os.system("ls")}，
+或者违反一条 ruff 规则，push 上去之后 CI 变红，就说明门禁确实拦住了问题。
+
+\subsection{grep、正则与 semgrep}
+
+想找出代码里危险的 \texttt{subprocess.Popen} 调用（带 \texttt{shell=True} 的），可以直接 grep：
+
+\begin{lstlisting}[language=bash,numbers=none]
+grep -Rn 'subprocess\.Popen([^)]*shell=True' .
+\end{lstlisting}
+
+但如果正则写得太随意，比如：
+
+\begin{lstlisting}[language=bash,numbers=none]
+grep -Rn 'Popen.*shell=True' .
+\end{lstlisting}
+
+这种写法可能漏掉跨行的情况，也处理不了参数之间多个空格的问题。
+
+更可靠的办法是用 semgrep，它基于语法树（AST）而不是文本匹配。写一条规则：
+
+\begin{lstlisting}[numbers=none]
+rules:
+  - id: dangerous-popen
+    pattern: subprocess.Popen(..., shell=True)
+    languages: [python]
+    message: "危险的 shell=True"
+\end{lstlisting}
+
+哪怕正则因为格式问题失效，semgrep 依然能准确认出这个危险调用。
+
+\subsection{IDE 中的正则查找替换}
+
+比如要把 Markdown 里的项目符号从减号统一换成星号。查找框写：
+
+\begin{lstlisting}[numbers=none]
+^-\s+
+\end{lstlisting}
+
+替换框写：
+
+\begin{lstlisting}[numbers=none]
+*
+\end{lstlisting}
+
+关键是锚定行首的 \texttt{\^{}}，保证只匹配作为项目符号的减号，
+不会误伤正文中间的连字符或数学里的减号。
+
+\subsection{捕获 JSON 中 name 的正则}
+
+如果用贪婪匹配：
+
+\begin{lstlisting}[numbers=none]
+"name": ".*"
+\end{lstlisting}
+
+\texttt{.*} 会一路吃到行尾最后一个引号，把后面的内容也吞进去。
+
+正确的写法是非贪婪地匹配"非引号字符"：
+
+\begin{lstlisting}[numbers=none]
+"name":\s*"([^"]*)"
+\end{lstlisting}
+
+如果 name 的值里可能出现转义的双引号，还需要支持转义，写成：
+
+\begin{lstlisting}[numbers=none]
+"name":\s*"((?:\\.|[^"\\])*)"
+\end{lstlisting}
+
+意思是每一段要么是一个反斜杠加任意字符（转义序列），要么是一个既不是引号也不是反斜杠的普通字符。
+
+\subsection{更推荐的做法：直接用 JSON 解析器}
+
+再精巧的正则也不如直接用解析器。Python 一行就能取出 name：
+
+\begin{lstlisting}[language=Python]
+import json, sys
+print(json.load(sys.stdin)["name"])
+\end{lstlisting}
+
+保存为 \texttt{extract\_name.py}，用管道喂一段 JSON 进去：
+
+\begin{lstlisting}[language=bash,numbers=none]
+echo '{"name": "Alyssa P. Hacker", "college": "MIT"}' | python extract_name.py
+\end{lstlisting}
+
+输出：
+
+\begin{lstlisting}[numbers=none]
+Alyssa P. Hacker
+\end{lstlisting}
+
+解析器天然处理转义、空白和嵌套结构，既不用维护复杂正则，也不会出现贪婪匹配的问题。
+
+% ============================================================
 \section{代码与仓库}
 
 项目已托管至 GitHub：
